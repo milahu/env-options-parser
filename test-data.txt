@@ -1,0 +1,53 @@
+/usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
+/usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
+/usr/bin/env -S deno
+/usr/bin/env deno
+/usr/bin/env -S cat "some file.txt"
+/usr/bin/env -S cat "some 'file'.txt"
+/usr/bin/env -S cat some\ \'file\'.txt
+/usr/bin/env -S cat 'some file.txt'
+/usr/bin/env -S cat some\ file.txt
+/usr/bin/env -S cat 'some "file".txt'
+/usr/bin/env -S cat 'some \"file.txt'
+/usr/bin/env -S cat 'some "file.txt FIXME xargs: unmatched double quote'
+/usr/bin/env -S cat some\ \\\"file.txt
+/usr/bin/env -S cat some\ \"file.txt\ "FIXME xargs: unmatched double quote"
+/usr/bin/env -S echo "home is ${HOME}, and argv0 is ..."
+
+/usr/bin/env -S -v - X=1 Y=2
+/usr/bin/env -S -v - -X=1 Y=2
+/usr/bin/env -S -v -i X=1 Y=2
+/usr/bin/env -S -v -i -X=1 Y=2 # error: /usr/bin/env: invalid option -- 'X'
+
+/usr/bin/env --split-string="printf" 'arg: %q\n' asdf asdf - X=asdf
+
+/usr/bin/env - X=asdf -S echo yeah # error: /usr/bin/env: '-S': No such file or directory (no options after -)
+
+/usr/bin/env -i X=asdf -S echo yeah # error: /usr/bin/env: '-S': No such file or directory (no options after -i)
+/usr/bin/env -i -S echo
+
+/usr/bin/env -i -S # error: /usr/bin/env: option requires an argument -- 'S'
+
+/usr/bin/env -i X=asdf -S"echo yeah"
+/usr/bin/env  -S"echo yeah"
+/usr/bin/env  -S"echo yeah" - X=1
+/usr/bin/env  -S"echo yeah" - X=1 Y=2
+/usr/bin/env  -S"echo yeah" -i X=1 Y=2
+/usr/bin/env -i X=1 Y=2 -S echo
+/usr/bin/env -i X=1 Y=2 echo
+/usr/bin/env - X=1 Y=2 echo
+/usr/bin/env - X=1 Y=2 env
+/usr/bin/env - X=1 Y=2 env -S asdf
+/usr/bin/env - X=1 Y=2 echo -S hello
+/usr/bin/env - X=1 Y=2 -S echo hello
+/usr/bin/env - X=1 Y=2 echo hello
+/usr/bin/env -S - X=1 Y=2 echo hello
+/usr/bin/env - X=1 Y=2 -S echo hello
+/usr/bin/env -S - X=1 Y=2 echo hello
+/usr/bin/env - X=1 Y=2 echo hello
+/usr/bin/env -S - X=1 Y=2 echo hello world
+/usr/bin/env - X=1 Y=2 echo hello world
+/usr/bin/env -S"echo hello" - X=1 Y=2 
+/usr/bin/env -S "echo hello" - X=1 Y=2 
+/usr/bin/env -S - X=1 Y=2 
+/usr/bin/env -S -v - X=1 Y=2 
