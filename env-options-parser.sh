@@ -12,69 +12,30 @@ set -e
 # related
 # https://github.com/uutils/coreutils/issues/1326
 
-testShebangLines="$(cat <<EOF
-/usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
-/usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
-/usr/bin/env -S deno
-/usr/bin/env deno
-/usr/bin/env -S cat "some file.txt"
-/usr/bin/env -S cat "some 'file'.txt"
-/usr/bin/env -S cat some\ \'file\'.txt
-/usr/bin/env -S cat 'some file.txt'
-/usr/bin/env -S cat some\ file.txt
-/usr/bin/env -S cat 'some "file".txt'
-/usr/bin/env -S cat 'some \"file.txt'
-/usr/bin/env -S cat 'some "file.txt FIXME xargs: unmatched double quote'
-/usr/bin/env -S cat some\ \\\"file.txt
-/usr/bin/env -S cat some\ \"file.txt\ "FIXME xargs: unmatched double quote"
-/usr/bin/env -S echo "home is ${HOME}, and argv0 is ..."
-
-/usr/bin/env -S -v - X=1 Y=2
-/usr/bin/env -S -v - -X=1 Y=2
-/usr/bin/env -S -v -i X=1 Y=2
-/usr/bin/env -S -v -i -X=1 Y=2 # error: /usr/bin/env: invalid option -- 'X'
-
-/usr/bin/env --split-string="printf" 'arg: %q\n' asdf asdf - X=asdf
-
-/usr/bin/env - X=asdf -S echo yeah # error: /usr/bin/env: '-S': No such file or directory (no options after -)
-
-/usr/bin/env -i X=asdf -S echo yeah # error: /usr/bin/env: '-S': No such file or directory (no options after -i)
-/usr/bin/env -i -S echo
-
-/usr/bin/env -i -S # error: /usr/bin/env: option requires an argument -- 'S'
-
-/usr/bin/env -i X=asdf -S"echo yeah"
-/usr/bin/env  -S"echo yeah"
-/usr/bin/env  -S"echo yeah" - X=1
-/usr/bin/env  -S"echo yeah" - X=1 Y=2
-/usr/bin/env  -S"echo yeah" -i X=1 Y=2
-/usr/bin/env -i X=1 Y=2 -S echo
-/usr/bin/env -i X=1 Y=2 echo
-/usr/bin/env - X=1 Y=2 echo
-/usr/bin/env - X=1 Y=2 env
-/usr/bin/env - X=1 Y=2 env -S asdf
-/usr/bin/env - X=1 Y=2 echo -S hello
-/usr/bin/env - X=1 Y=2 -S echo hello
-/usr/bin/env - X=1 Y=2 echo hello
-/usr/bin/env -S - X=1 Y=2 echo hello
-/usr/bin/env - X=1 Y=2 -S echo hello
-/usr/bin/env -S - X=1 Y=2 echo hello
-/usr/bin/env - X=1 Y=2 echo hello
-/usr/bin/env -S - X=1 Y=2 echo hello world
-/usr/bin/env - X=1 Y=2 echo hello world
-/usr/bin/env -S"echo hello" - X=1 Y=2 
-/usr/bin/env -S "echo hello" - X=1 Y=2 
-/usr/bin/env -S - X=1 Y=2 
-/usr/bin/env -S -v - X=1 Y=2 
 
 
-EOF
-)"
+# simple options
+simpleOptions="chdir null ignoreEnvironment listSignalHandling debug help version"
+chdir=
+null=
+ignoreEnvironment=
+listSignalHandling=
+debug=
+help=
+version=
 
-while read argstring; do # ...; done < <( echo "$testShebangLines" )
+# array options
+arrayOptions="passArgs setEnvs unsetEnvs blockSignals ignoreSignals defaultSignals"
+passArgs=()
+setEnvs=()
+unsetEnvs=()
+blockSignals=()
+ignoreSignals=()
+defaultSignals=()
 
-echo
-echo "argstring = $argstring"
+
+
+argstring="$1"
 
 # tokenize string to array
 # https://stackoverflow.com/questions/26067249
@@ -94,24 +55,11 @@ done < <(xargs printf '%s\0' <<<"$argstring")
 # serialize array to string
 # https://unix.stackexchange.com/questions/518012
 # always add single quotes:
-echo "args quoted 1: ${args[@]@Q}"
+#echo "args quoted 1: ${args[@]@Q}"
 # add backslash-escapes when needed:
-echo "args quoted 2: $(printf '%q ' "${args[@]}")"
-
-continue
-
-echo "num args: ${#args[@]}"
+#echo "args quoted 2: $(printf '%q ' "${args[@]}")"
 
 
-null=
-
-envArgs=()
-passArgs=()
-
-blockSignal=
-defaultSignal=
-debugSignals=
-debug=
 
 for ((i = 0; i < ${#args[@]}; i++ ))
 do
@@ -131,32 +79,37 @@ do
     -)
       # end of options
       # all following *=* args are key=value pairs for env-vars
+      # TODO
       ;;
     -i|--ignore-environment)
       # start with an empty environment
-      envArgs+=("$a")
+      ignoreEnvironment=1
       ;;
     -0|--null)
       # end each output line with NUL, not newline
-      envArgs+=("$a")
+      null=1
       ;;
-    -u)
+    -u|--unset|--unset=*)
       # remove variable from the environment
-      # TODO
-    ;;
-    --unset|--unset=*)
-      # remove variable from the environment
-      if [ "$a" = "--unset" ]; then : $((i++)); envArgs+=("$a" "${args[$i]}"); else envArgs+=("$a"); fi
+      if [ "$a" = "-u" ] || [ "$a" = "--unset" ]; then : $((i++)); unsetEnvs+=("$a" "${args[$i]}"); else unsetEnvs+=("$a"); fi
       ;;
     -C|--chdir|--chdir=*)
       # change working directory to DIR
+      if [ "$a" = "-C" ] || [ "$a" = "--chdir" ]; then : $((i++)); chdir="${args[$i]}"; else chdir=("$a"); fi
       ;;
     -S|--split-string|--split-string=*)
       # consume all following args
       passArgs=("${args[@]:$i}")
+      : $((i++))
       if [ "$a" = "--split-string" ]; then
-        : $((i++))
+        # --split-string arg0 arg1 arg2
         passArgs=("${args[@]:$i}")
+      elif [ "$a" = "-S" ]; then
+        # -S arg0 arg1 arg2
+        passArgs=("${args[@]:$i}")
+      elif [ "${a:0:2}" = "-S" ]; then
+        # -Sarg0 arg1 arg2
+        passArgs=("${a:2}" "${args[@]:$i}")
       else
         # --split-string=arg0 arg1 arg2
         passArgs=("${a:15}" "${args[@]:$i}")
@@ -165,31 +118,31 @@ do
       ;;
     --block-signal|--block-signal=*)
       # block delivery of SIG signal(s) to COMMAND
-      if [ "$a" = "--block-signal" ]; then : $((i++)); envArgs+=("$a" "${args[$i]}"); else envArgs+=("$a"); fi
+      if [ "$a" = "--block-signal" ]; then : $((i++)); blockSignals+=("$a" "${args[$i]}"); else blockSignals+=("$a"); fi
       ;;
     --default-signal|--default-signal=*)
       # reset handling of SIG signal(s) to the default
-      if [ "$a" = "--default-signal" ]; then : $((i++)); envArgs+=("$a" "${args[$i]}"); else envArgs+=("$a"); fi
+      if [ "$a" = "--default-signal" ]; then : $((i++)); defaultSignals+=("$a" "${args[$i]}"); else defaultSignals+=("$a"); fi
       ;;
     --ignore-signal|--ignore-signal=*)
       # set handling of SIG signal(s) to do nothing
-      if [ "$a" = "--ignore-signal" ]; then : $((i++)); envArgs+=("$a" "${args[$i]}"); else envArgs+=("$a"); fi
+      if [ "$a" = "--ignore-signal" ]; then : $((i++)); ignoreSignals+=("$a" "${args[$i]}"); else ignoreSignals+=("$a"); fi
       ;;
     --list-signal-handling)
       # list non default signal handling to stderr
-      envArgs+=("$a")
+      listSignalHandling=1
       ;;
     -v|--debug)
       # print verbose information for each processing step
-      envArgs+=("$a")
+      debug=1
       ;;
     --help)
       # display this help and exit
-      envArgs+=("$a")
+      help=1
       ;;
     --version)
       # output version information and exit
-      envArgs+=("$a")
+      version=1
       ;;
 
     *)
@@ -199,9 +152,24 @@ do
   esac
 done
 
-echo "defaultSignal = $defaultSignal"
-printf 'passArgs: '; printf '%q ' "${passArgs[@]}"; printf '\n'
 
 
+# print result
 
-done < <( echo "$testShebangLines" )
+# simple options
+for name in $simpleOptions
+do
+  printf "%s: " "$name"
+  eval "printf '%q ' \"\${$name}\""
+  printf '\n'
+done
+
+# array options
+#printf 'passArgs: '; printf '%q ' "${passArgs[@]}"; printf '\n'
+for name in $arrayOptions
+do
+  printf "%s: " "$name"
+  #eval "printf '%q ' \"\${$name[@]}\""
+  eval "for a in \"\${$name[@]}\"; do printf '%q ' \"\$a\"; done"
+  printf '\n'
+done
