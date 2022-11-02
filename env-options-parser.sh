@@ -61,7 +61,9 @@ done < <(xargs printf '%s\0' <<<"$argstring")
 
 
 
-for ((i = 0; i < ${#args[@]}; i++ ))
+# arg0 == /usr/bin/env
+
+for ((i = 1; i < ${#args[@]}; i++ ))
 do
   a=${args[$i]}
   case "$a" in
@@ -91,11 +93,15 @@ do
       ;;
     -u|--unset|--unset=*)
       # remove variable from the environment
-      if [ "$a" = "-u" ] || [ "$a" = "--unset" ]; then : $((i++)); unsetEnvs+=("$a" "${args[$i]}"); else unsetEnvs+=("$a"); fi
+      if [ "$a" = "-u" ] || [ "$a" = "--unset" ]
+      then : $((i++)); unsetEnvs+=("${args[$i]}")
+      else unsetEnvs+=("${a:8}"); fi
       ;;
     -C|--chdir|--chdir=*)
       # change working directory to DIR
-      if [ "$a" = "-C" ] || [ "$a" = "--chdir" ]; then : $((i++)); chdir="${args[$i]}"; else chdir=("$a"); fi
+      if [ "$a" = "-C" ] || [ "$a" = "--chdir" ]
+      then : $((i++)); chdir="${args[$i]}"
+      else chdir=("${a:8}"); fi
       ;;
     -S|-S*|--split-string|--split-string=*)
       # consume all following args
@@ -118,15 +124,21 @@ do
       ;;
     --block-signal|--block-signal=*)
       # block delivery of SIG signal(s) to COMMAND
-      if [ "$a" = "--block-signal" ]; then : $((i++)); blockSignals+=("$a" "${args[$i]}"); else blockSignals+=("$a"); fi
+      if [ "$a" = "--block-signal" ]
+      then : $((i++)); blockSignals+=("${args[$i]}")
+      else blockSignals+=("${a:15}"); fi
       ;;
     --default-signal|--default-signal=*)
       # reset handling of SIG signal(s) to the default
-      if [ "$a" = "--default-signal" ]; then : $((i++)); defaultSignals+=("$a" "${args[$i]}"); else defaultSignals+=("$a"); fi
+      if [ "$a" = "--default-signal" ]
+      then : $((i++)); defaultSignals+=("$a" "${args[$i]}")
+      else defaultSignals+=("${a:17}"); fi
       ;;
     --ignore-signal|--ignore-signal=*)
       # set handling of SIG signal(s) to do nothing
-      if [ "$a" = "--ignore-signal" ]; then : $((i++)); ignoreSignals+=("$a" "${args[$i]}"); else ignoreSignals+=("$a"); fi
+      if [ "$a" = "--ignore-signal" ]
+      then : $((i++)); ignoreSignals+=("$a" "${args[$i]}")
+      else ignoreSignals+=("${a:16}"); fi
       ;;
     --list-signal-handling)
       # list non default signal handling to stderr
