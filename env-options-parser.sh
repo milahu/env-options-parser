@@ -12,11 +12,6 @@ set -e
 # related
 # https://github.com/uutils/coreutils/issues/1326
 
-dry_run=true # dont call gcc, just print args
-
-#gccPath="$1"
-#shift
-
 testShebangLines="$(cat <<EOF
 /usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
 /usr/bin/env -S deno run --unstable --allow-read --allow-write --allow-env --no-check
