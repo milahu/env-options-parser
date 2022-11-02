@@ -97,7 +97,7 @@ do
       # change working directory to DIR
       if [ "$a" = "-C" ] || [ "$a" = "--chdir" ]; then : $((i++)); chdir="${args[$i]}"; else chdir=("$a"); fi
       ;;
-    -S|--split-string|--split-string=*)
+    -S|-S*|--split-string|--split-string=*)
       # consume all following args
       passArgs=("${args[@]:$i}")
       : $((i++))
